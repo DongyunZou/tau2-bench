@@ -67,7 +67,7 @@ All the information that an agent developer needs to build an agent for a domain
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/sierra-research/tau2-bench
+git clone https://github.com/DongyunZou/tau2-bench.git
 cd tau2-bench
 ```
 
@@ -76,8 +76,8 @@ cd tau2-bench
 $\tau^2$-bench requires Python 3.10 or higher. You may create and activate a new environment:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+conda create python=3.12 -n tau2-bench
+conda activate tau2-bench
 ```
 
 3. Install tau2
@@ -109,6 +109,11 @@ To remove all the generated files and the virtual environment, run:
 make clean
 ```
 
+4. Install vllm (fix tokenizer version)
+```bash
+git clone -b fix-tool-parser-tokenizer-race-condition git@github.com:timon0305/vllm.git
+VLLM_USE_PRECOMPILED=1 pip install -e .
+```
 ## Quick Start
 
 ### Setup LLM API keys
@@ -133,6 +138,26 @@ tau2 run \
 Results will be saved in `data/tau2/simulations/`.
 
 > **💡 Tip**: For full agent evaluation that matches the original τ²-bench methodology, remove `--num-tasks` and use `--task-split base` to evaluate on the complete task set.
+
+### Run agent evaluation locally using vllm
+```bash
+python -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen3-4B \
+    --tensor-parallel-size 8 \
+    --trust-remote-code \
+    --port 8000 \
+    --enable-auto-tool-choice \
+    --tool-call-parser hermes
+
+tau2 run \
+  --domain retail \
+  --agent-llm hosted_vllm/Qwen/Qwen3-4B \
+  --agent-llm-args '{"api_base": "http://localhost:8000/v1", "api_key": "EMPTY", "temperature": 0}' \
+  --user-llm gpt-4.1 \
+  --num-trials 1 \
+  --max-concurrency 32 \
+  --save-to results/retail_qwen3_4b_full
+```
 
 ## Command Line Interface
 
